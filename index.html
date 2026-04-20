@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SmartClass — Attendance Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --bg:#0a0d14;--surface:#111520;--card:#161c2e;--border:#1e2640;
+      --accent:#4f8ef7;--accent2:#7c5cfc;--success:#22d3a0;
+      --warning:#f7a84f;--danger:#f75f5f;--text:#e8eaf6;
+      --muted:#6b7399;--subtle:#252d48;
+    }
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(79,142,247,0.08) 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 80% 80%,rgba(124,92,252,0.07) 0%,transparent 55%);pointer-events:none;z-index:0;}
+
+    /* LOGIN */
+    #login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:100;background:var(--bg);transition:opacity .5s,visibility .5s;}
+    #login-screen.hidden{opacity:0;visibility:hidden;pointer-events:none;}
+    .login-box{width:440px;background:var(--card);border:1px solid var(--border);border-radius:24px;padding:48px 40px;animation:slideUp .6s cubic-bezier(.22,1,.36,1);}
+    @keyframes slideUp{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}
+    .login-logo{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:36px;}
+    .login-title{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;line-height:1.2;margin-bottom:8px;}
+    .login-sub{color:var(--muted);font-size:14px;margin-bottom:36px;}
+    .role-tabs{display:flex;gap:8px;margin-bottom:28px;background:var(--surface);border-radius:12px;padding:4px;}
+    .role-tab{flex:1;padding:10px;border:none;border-radius:9px;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;}
+    .role-tab.active{background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(79,142,247,0.3);}
+    .field{margin-bottom:18px;}
+    .field label{display:block;font-size:12px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+    .field input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s;}
+    .field input:focus{border-color:var(--accent);}
+    .btn-primary{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;color:#fff;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 4px 20px rgba(79,142,247,0.3);}
+    .btn-primary:hover{transform:translateY(-1px);}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+    .login-error{margin-top:14px;padding:10px 14px;background:rgba(247,95,95,0.1);border:1px solid rgba(247,95,95,0.3);border-radius:8px;color:var(--danger);font-size:13px;display:none;}
+    .login-error.show{display:block;}
+    .demo-hint{margin-top:16px;padding:10px 14px;background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.2);border-radius:8px;font-size:12px;color:var(--muted);}
+    .demo-hint strong{color:var(--accent);}
+
+    /* APP */
+    #app{display:none;min-height:100vh;position:relative;z-index:1;}
+    #app.visible{display:block;}
+
+    /* HEADER */
+    header{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;border-bottom:1px solid var(--border);background:rgba(10,13,20,0.8);backdrop-filter:blur(20px);position:sticky;top:0;z-index:50;}
+    .header-brand{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;}
+    .header-brand span{color:var(--accent);}
+    .header-right{display:flex;align-items:center;gap:16px;}
+    .live-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(34,211,160,0.1);border:1px solid rgba(34,211,160,0.3);color:var(--success);font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;}
+    .live-dot{width:6px;height:6px;border-radius:50%;background:var(--success);animation:pulse 1.5s ease infinite;}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+    .user-badge{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:50px;padding:6px 16px 6px 6px;}
+    .user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+    .user-name{font-size:13px;font-weight:500;}
+    .user-role{font-size:11px;color:var(--muted);}
+    .btn-logout{background:transparent;border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--muted);font-size:13px;cursor:pointer;transition:all .2s;}
+    .btn-logout:hover{border-color:var(--danger);color:var(--danger);}
+
+    /* TOAST */
+    #toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 20px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4);transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.22,1,.36,1);max-width:380px;}
+    #toast.show{transform:translateY(0);opacity:1;}
+    #toast.ok{border-color:rgba(34,211,160,0.4);}
+    #toast.err{border-color:rgba(247,95,95,0.4);}
+    #toast.info{border-color:rgba(79,142,247,0.4);}
+    .toast-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+    .toast-title{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:2px;}
+    .toast-body{font-size:12px;color:var(--muted);line-height:1.5;}
+
+    /* CONTENT */
+    .content{padding:32px;max-width:1200px;margin:0 auto;}
+    .page-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;margin-bottom:6px;}
+    .page-sub{color:var(--muted);font-size:14px;margin-bottom:32px;}
+
+    /* STATS */
+    .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px;}
+    .stat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;animation:fadeIn .5s ease both;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    .stat-label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px;}
+    .stat-value{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;line-height:1;}
+    .stat-value.good{color:var(--success);}.stat-value.warn{color:var(--warning);}.stat-value.bad{color:var(--danger);}
+    .stat-meta{font-size:13px;color:var(--muted);margin-top:6px;}
+    .ring-track{width:100%;height:6px;background:var(--subtle);border-radius:99px;overflow:hidden;margin-top:12px;}
+    .ring-fill{height:100%;border-radius:99px;transition:width 1s cubic-bezier(.22,1,.36,1);}
+    .ring-fill.good{background:var(--success);}.ring-fill.warn{background:var(--warning);}.ring-fill.bad{background:var(--danger);}
+
+    /* TABLE */
+    .section-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:16px;}
+    table{width:100%;border-collapse:collapse;background:var(--card);border-radius:16px;overflow:hidden;border:1px solid var(--border);}
+    thead{background:var(--subtle);}
+    th{padding:14px 20px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+    td{padding:14px 20px;border-top:1px solid var(--border);font-size:14px;}
+    tr:hover td{background:rgba(79,142,247,0.04);}
+    .badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600;}
+    .badge.good{background:rgba(34,211,160,0.15);color:var(--success);}.badge.warn{background:rgba(247,168,79,0.15);color:var(--warning);}.badge.bad{background:rgba(247,95,95,0.15);color:var(--danger);}
+    .prog-bar{width:100px;height:5px;background:var(--subtle);border-radius:99px;overflow:hidden;}
+    .prog-fill{height:100%;border-radius:99px;}
+    .prog-fill.good{background:var(--success);}.prog-fill.warn{background:var(--warning);}.prog-fill.bad{background:var(--danger);}
+
+    /* SCHEDULE */
+    .today-banner{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px 28px;margin-bottom:28px;}
+    .today-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+    .today-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;}
+    .today-date{font-size:12px;color:var(--muted);}
+    .schedule-list{display:flex;flex-direction:column;gap:8px;}
+    .schedule-row{display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:10px;background:var(--surface);border-left:3px solid transparent;}
+    .schedule-row.current{background:rgba(79,142,247,0.08);border-left-color:var(--accent);}
+    .schedule-row.past{opacity:.45;}
+    .sched-period{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;width:28px;text-align:center;color:var(--muted);}
+    .sched-time{font-size:12px;color:var(--muted);white-space:nowrap;min-width:90px;}
+    .type-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;}
+    .type-L{background:rgba(79,142,247,0.15);color:var(--accent);}
+    .type-T{background:rgba(124,92,252,0.15);color:var(--accent2);}
+    .type-P{background:rgba(247,168,79,0.15);color:var(--warning);}
+    .no-class{text-align:center;padding:20px;color:var(--muted);font-size:13px;}
+
+    /* FACULTY */
+    .faculty-layout{display:grid;grid-template-columns:240px 1fr;gap:24px;}
+    .sidebar{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;height:fit-content;position:sticky;top:96px;}
+    .sidebar-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px;}
+    .sidebar-item{padding:10px 14px;border-radius:10px;cursor:pointer;transition:all .15s;font-size:14px;font-weight:500;display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+    .sidebar-item:hover{background:var(--subtle);}
+    .sidebar-item.active{background:rgba(79,142,247,0.15);color:var(--accent);}
+    .sidebar-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;display:none;}
+    .sidebar-item.active .sidebar-dot{display:block;}
+    .section-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;}
+    .chip{padding:7px 16px;border-radius:99px;border:1px solid var(--border);background:var(--surface);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;}
+    .chip:hover{border-color:var(--accent);}
+    .chip.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+    .students-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-top:20px;}
+    .student-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;cursor:pointer;transition:all .2s;animation:fadeIn .4s ease both;}
+    .student-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 32px rgba(79,142,247,0.12);}
+    .student-card-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:4px;}
+    .student-card-roll{font-size:12px;color:var(--muted);margin-bottom:14px;}
+    .student-card-pct{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;}
+
+    /* SCAN */
+    .scan-panel{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px 28px;margin-bottom:28px;}
+    .scan-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+    .scan-input{flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s;}
+    .scan-input:focus{border-color:var(--accent);}
+    .btn-scan{padding:11px 20px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s;}
+    .btn-scan:hover{background:#3a7de8;}
+    .scan-result{margin-top:12px;padding:12px 16px;border-radius:10px;font-size:13px;line-height:1.6;display:none;}
+    .scan-result.show{display:block;}
+    .scan-result.ok{background:rgba(34,211,160,0.1);border:1px solid rgba(34,211,160,0.3);color:var(--success);}
+    .scan-result.err{background:rgba(247,95,95,0.1);border:1px solid rgba(247,95,95,0.3);color:var(--danger);}
+    .scan-result.info{background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.3);color:var(--accent);}
+
+    /* MODAL */
+    .modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:all .25s;}
+    .modal-overlay.open{opacity:1;visibility:visible;}
+    .modal{background:var(--card);border:1px solid var(--border);border-radius:24px;width:600px;max-height:85vh;overflow-y:auto;padding:36px;transform:scale(.96);transition:transform .25s cubic-bezier(.22,1,.36,1);}
+    .modal-overlay.open .modal{transform:scale(1);}
+    .modal-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;}
+    .modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;}
+    .modal-roll{font-size:13px;color:var(--muted);margin-top:2px;}
+    .btn-close{background:var(--subtle);border:none;width:36px;height:36px;border-radius:50%;color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .btn-close:hover{background:var(--border);}
+    .subject-edit-row{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;}
+    .ser-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+    .ser-subject{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;}
+    .ser-pct{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;}
+    .ser-inputs{display:flex;gap:10px;}
+    .ser-input-wrap{flex:1;}
+    .ser-input-wrap label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;}
+    .ser-input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;}
+    .ser-input:focus{border-color:var(--accent);}
+    .btn-save-attendance{width:100%;margin-top:20px;padding:14px;background:linear-gradient(135deg,var(--success),#16a37a);border:none;border-radius:12px;color:#fff;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;}
+    .btn-save-attendance:hover{transform:translateY(-1px);}
+    .btn-save-attendance:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+    .save-status{margin-top:12px;text-align:center;font-size:13px;color:var(--success);min-height:20px;}
+
+    /* UTILS */
+    .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:40px auto;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+    .empty-state .icon{font-size:40px;margin-bottom:12px;}
+    .empty-state p{font-size:14px;}
+    .info-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:600;}
+    .info-chip.warn{background:rgba(247,168,79,0.15);color:var(--warning);}
+    .info-chip.ok{background:rgba(34,211,160,0.15);color:var(--success);}
+
+    @media(max-width:768px){
+      .stats-grid{grid-template-columns:1fr;}
+      .faculty-layout{grid-template-columns:1fr;}
+      .sidebar{position:static;}
+      .content{padding:16px;}
+      header{padding:12px 16px;}
+      .login-box{width:90%;padding:36px 24px;}
+      .modal{width:95%;padding:24px;}
+    }
+  </style>
+</head>
+<body>
+
+<div id="toast">
+  <div class="toast-icon" id="toast-icon">✅</div>
+  <div>
+    <div class="toast-title" id="toast-title"></div>
+    <div class="toast-body" id="toast-body"></div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">⬡ SmartClass</div>
+    <div class="login-title">Attendance<br>Portal</div>
+    <div class="login-sub">Sign in to access your dashboard</div>
+    <div class="role-tabs">
+      <button class="role-tab active" onclick="setRole('student')">Student</button>
+      <button class="role-tab" onclick="setRole('faculty')">Faculty</button>
+    </div>
+    <div class="field">
+      <label id="login-label">Roll Number / Email</label>
+      <input type="text" id="login-id" placeholder="e.g. 2025041260"/>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="••••••••"/>
+    </div>
+    <button class="btn-primary" id="btn-login" onclick="doLogin()">Sign In →</button>
+    <div class="login-error" id="login-error"></div>
+    <div class="demo-hint"><strong>Tip:</strong> Enter roll number or email. Password is not validated.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="header-brand">Smart<span>Class</span></div>
+    <div class="header-right">
+      <div id="live-indicator" style="display:none">
+        <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+      </div>
+      <div class="user-badge">
+        <div class="user-avatar" id="hdr-avatar">?</div>
+        <div>
+          <div class="user-name" id="hdr-name">—</div>
+          <div class="user-role" id="hdr-role">—</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- STUDENT DASHBOARD -->
+  <div id="student-dashboard" style="display:none">
+    <div class="content">
+      <div class="page-title" id="std-title">My Attendance</div>
+      <div class="page-sub" id="std-sub">Loading...</div>
+      <div class="today-banner">
+        <div class="today-header">
+          <div class="today-title">📅 Today's Schedule</div>
+          <div class="today-date" id="today-date-label"></div>
+        </div>
+        <div class="schedule-list" id="today-schedule-list"><div class="no-class">Loading…</div></div>
+      </div>
+      <div class="stats-grid" id="std-stats"></div>
+      <div class="section-title">Subject-wise Attendance</div>
+      <div id="std-table-wrap"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- FACULTY DASHBOARD -->
+  <div id="faculty-dashboard" style="display:none">
+    <div class="content">
+      <div class="page-title" id="fac-title">My Classes</div>
+      <div class="page-sub">View and manage student attendance for your subjects</div>
+      <div class="scan-panel">
+        <div class="section-title" style="margin-bottom:8px">🔖 Process RFID Scan</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Manual entry or relay from physical reader. Auto-processes in real-time.</div>
+        <div class="scan-row">
+          <input class="scan-input" id="scan-rfid-input" type="text" placeholder="RFID UID (e.g. 835F7629)"/>
+          <input class="scan-input" id="scan-datetime-input" type="datetime-local" style="max-width:220px"/>
+          <button class="btn-scan" onclick="triggerScan()">Process →</button>
+        </div>
+        <div class="scan-result" id="scan-result-box"></div>
+      </div>
+      <div class="faculty-layout">
+        <div class="sidebar">
+          <div class="sidebar-title">My Branches</div>
+          <div id="fac-branches"><div class="spinner" style="width:24px;height:24px;margin:16px auto;"></div></div>
+        </div>
+        <div>
+          <div id="fac-section-picker" style="display:none;margin-bottom:12px;">
+            <div class="section-title" style="margin-bottom:10px;">Sections</div>
+            <div class="section-chips" id="fac-sections"></div>
+          </div>
+          <div id="fac-students-wrap">
+            <div class="empty-state"><div class="icon">🏫</div><p>Select a branch to view students</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ATTENDANCE MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-name">—</div>
+        <div class="modal-roll" id="modal-roll">—</div>
+      </div>
+      <button class="btn-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+    <div class="save-status" id="save-status"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore, collection, getDocs, doc, getDoc,
+  query, where, updateDoc, setDoc, increment, onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCcwfUf-9O0CfXW-2z5EA902RpKTpFskZ8",
+  authDomain: "smart-class-37bb7.firebaseapp.com",
+  projectId: "smart-class-37bb7",
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+/* ══════════════════════════════════════
+   SUBJECT DEFINITIONS + ALIAS MAP
+══════════════════════════════════════ */
+const SUBJECTS_DEF = {
+  'BSM-160':{ name:'Engineering Mathematics - II', short:'Maths II'        },
+  'BSM-181':{ name:'Engineering Physics',           short:'Physics'         },
+  'BCS-160':{ name:'Introduction to C Programming', short:'C Programming'  },
+  'BEC-157':{ name:'Electronic Workshop',            short:'Electronic WS'  },
+  'BHS-151':{ name:'Universal Human Values (UHV)',   short:'UHV'            },
+  'BEC-170':{ name:'Design Thinking in Electronics & Comm', short:'Design Thinking' },
+};
+
+const SUBJ_ALIAS = {};
+for(const [code,m] of Object.entries(SUBJECTS_DEF)){
+  SUBJ_ALIAS[code]   = code;
+  SUBJ_ALIAS[m.name] = code;
+  SUBJ_ALIAS[m.short]= code;
+}
+Object.assign(SUBJ_ALIAS,{
+  'Mathematics':'BSM-160','Electronic Workshop':'BEC-157',
+  'Physics':'BSM-181','C Programming':'BCS-160',
+  'Introduction to C Programming':'BCS-160',
+  'UHV':'BHS-151','Design Thinking':'BEC-170',
+});
+function toCode(raw){ return SUBJ_ALIAS[raw] || raw; }
+
+/* ══════════════════════════════════════
+   TIMETABLE ENGINE
+   Group 1 (T1/P1): roll suffix 01-35
+   Group 2 (T2/P2): roll suffix 36-69
+   Scan window = first 15 min of period
+══════════════════════════════════════ */
+const PD = [
+  {id:1,label:'I',   start:[9,30], end:[10,20],scanClose:[9,45]  },
+  {id:2,label:'II',  start:[10,20],end:[11,10],scanClose:[10,35] },
+  {id:3,label:'III', start:[11,10],end:[12,0], scanClose:[11,25] },
+  {id:4,label:'IV',  start:[12,0], end:[12,50],scanClose:[12,15] },
+  {id:5,label:'V',   start:[14,20],end:[15,10],scanClose:[14,35] },
+  {id:6,label:'VI',  start:[15,10],end:[16,0], scanClose:[15,25] },
+  {id:7,label:'VII', start:[16,0], end:[16,50],scanClose:[16,15] },
+];
+const ALL=0,G1=1,G2=2;
+const DAYS=[null,'MON','TUE','WED','THU','FRI','SAT'];
+
+const TT = {
+  MON_1:{s:'BCS-160',g:ALL,t:'L',n:'Dr. Rohit Kumar Tiwari'},
+  MON_2:{s:'BEC-157',g:ALL,t:'L',n:'SKM'},
+  MON_4:{s:'BSM-181',g:ALL,t:'L'},
+  MON_5:{s:'BSM-160',g:ALL,t:'L'},
+  TUE_1:{s:'BCS-160',g:ALL,t:'L',n:'Dr. Rohit Kumar Tiwari'},
+  TUE_2:{s:'BHS-151',g:ALL,t:'L'},
+  TUE_3:{s:'BSM-160',g:ALL,t:'L'},
+  TUE_4:{s:'BSM-181',g:ALL,t:'L'},
+  TUE_5_G1:{s:'BEC-157',g:G1,t:'P',n:'SKM/RDP',labStart:true,spans:3},
+  TUE_6_G1:{s:'BEC-157',g:G1,t:'P',labCont:true},
+  TUE_7_G1:{s:'BEC-157',g:G1,t:'P',labCont:true},
+  TUE_5_G2:{s:'BSM-160',g:G2,t:'T',n:'TL-204'},
+  WED_1:{s:'BCS-160',g:ALL,t:'L',n:'Dr. Rohit Kumar Tiwari'},
+  WED_2:{s:'BEC-157',g:ALL,t:'L',n:'SKM'},
+  WED_3:{s:'BSM-160',g:ALL,t:'L'},
+  WED_4_G1:{s:'BHS-151',g:G1,t:'T',n:'TL-204'},
+  THU_1_G1:{s:'BEC-170',g:G1,t:'P',n:'BPP/TK',labStart:true,spans:2},
+  THU_2_G1:{s:'BEC-170',g:G1,t:'P',labCont:true},
+  THU_2_G2:{s:'BSM-181',g:G2,t:'P'},
+  THU_3:{s:'BHS-151',g:ALL,t:'L'},
+  THU_5_G2:{s:'BCS-160',g:G2,t:'P',n:'Dr. Rohit Kumar Tiwari / Ms. Anjali Verma / TRC-01'},
+  THU_6_G1:{s:'BSM-160',g:G1,t:'T',n:'TL-204'},
+  FRI_1:{s:'BSM-181',g:ALL,t:'L'},
+  FRI_2_G2:{s:'BEC-170',g:G2,t:'P',n:'NM/TK',labStart:true,spans:2},
+  FRI_3_G2:{s:'BEC-170',g:G2,t:'P',labCont:true},
+  FRI_5_G2:{s:'BHS-151',g:G2,t:'T',n:'TL-204'},
+  FRI_7:{s:'BHS-151',g:ALL,t:'L'},
+  SAT_1_G2:{s:'BEC-157',g:G2,t:'P',n:'SKM/RKS',labStart:true,spans:3},
+  SAT_2_G2:{s:'BEC-157',g:G2,t:'P',labCont:true},
+  SAT_3_G2:{s:'BEC-157',g:G2,t:'P',labCont:true},
+  SAT_1_G1:{s:'BCS-160',g:G1,t:'P',n:'Dr. Rohit Kumar Tiwari / Dr. Avaneesh Singh / TRC-02',labStart:true,spans:2},
+  SAT_2_G1:{s:'BCS-160',g:G1,t:'P',labCont:true},
+  SAT_3_G1:{s:'BSM-181',g:G1,t:'P'},
+};
+
+function toMin(h,m){ return h*60+m; }
+function grpOf(roll){ const s=parseInt(String(roll).slice(-2),10); return s>=1&&s<=35?G1:s>=36&&s<=69?G2:ALL; }
+function getPid(date){ const t=toMin(date.getHours(),date.getMinutes()); for(const p of PD) if(t>=toMin(...p.start)&&t<=toMin(...p.scanClose)) return p.id; return null; }
+function dk(date){ return`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`; }
+
+function resolveClasses(scanTime, roll){
+  const day=DAYS[scanTime.getDay()]; if(!day) return[];
+  const pid=getPid(scanTime); if(!pid) return[];
+  const grp=grpOf(roll); const hits=[];
+  const gk=(grp===G1||grp===G2)?`${day}_${pid}_G${grp}`:null;
+  const ak=`${day}_${pid}`;
+  if(gk&&TT[gk]&&!TT[gk].labCont) hits.push({...TT[gk],subject:TT[gk].s,type:TT[gk].t,note:TT[gk].n||'',key:gk,periodId:pid,day});
+  if(TT[ak]&&!TT[ak].labCont)     hits.push({...TT[ak],subject:TT[ak].s,type:TT[ak].t,note:TT[ak].n||'',key:ak,periodId:pid,day});
+  return hits;
+}
+
+// Get all classes for a student on a given day (not just by scan window)
+function getAllDayClasses(date, roll){
+  const day=DAYS[date.getDay()]; if(!day) return[];
+  const grp=grpOf(roll); const out=[];
+  for(const p of PD){
+    const ak=`${day}_${p.id}`, g1k=`${day}_${p.id}_G1`, g2k=`${day}_${p.id}_G2`;
+    let slot=null;
+    if(grp===G1&&TT[g1k])      slot=TT[g1k];
+    else if(grp===G2&&TT[g2k]) slot=TT[g2k];
+    else if(TT[ak])             slot=TT[ak];
+    if(slot&&!slot.labCont) out.push({subject:slot.s,type:slot.t,periodId:p.id,day,pd:p});
+  }
+  return out;
+}
+
+function getTodaySched(date, roll){
+  const day=DAYS[date.getDay()]; if(!day) return[];
+  const grp=grpOf(roll); const out=[];
+  for(const p of PD){
+    const ak=`${day}_${p.id}`, g1k=`${day}_${p.id}_G1`, g2k=`${day}_${p.id}_G2`;
+    let slot=null;
+    if(grp===G1&&TT[g1k])      slot=TT[g1k];
+    else if(grp===G2&&TT[g2k]) slot=TT[g2k];
+    else if(TT[ak])             slot=TT[ak];
+    if(slot&&!slot.labCont) out.push({
+      period:p.label,
+      start:`${String(p.start[0]).padStart(2,'0')}:${String(p.start[1]).padStart(2,'0')}`,
+      end:`${String(p.end[0]).padStart(2,'0')}:${String(p.end[1]).padStart(2,'0')}`,
+      subject:slot.s,type:slot.t,note:slot.n||'',spans:slot.spans||0,
+      subjectName:SUBJECTS_DEF[slot.s]?.name||slot.s,pd:p,
+    });
+  }
+  return out;
+}
+
+function renderSchedule(roll){
+  const now=new Date();
+  const DN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  document.getElementById('today-date-label').textContent=
+    DN[now.getDay()]+', '+now.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  const sched=getTodaySched(now,roll);
+  const el=document.getElementById('today-schedule-list');
+  if(!sched.length){ el.innerHTML=`<div class="no-class">🎉 No classes today!</div>`; return; }
+  const nm=toMin(now.getHours(),now.getMinutes());
+  el.innerHTML=sched.map(s=>{
+    const sm=toMin(...s.pd.start), em=toMin(...s.pd.end);
+    const cur=nm>=sm&&nm<em, past=nm>=em;
+    return`<div class="schedule-row ${cur?'current':past?'past':''}">
+      <div class="sched-period">${s.period}</div>
+      <div class="sched-time">${s.start}–${s.end}</div>
+      <div style="flex:1">
+        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700">${s.subject}${s.spans?` <span style="font-size:10px;color:var(--muted)">(${s.spans}hr)</span>`:''}</div>
+        <div style="font-size:12px;color:var(--muted)">${s.subjectName}</div>
+        ${s.note?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${s.note}</div>`:''}
+      </div>
+      <span class="type-badge type-${s.type}">${s.type==='L'?'Lecture':s.type==='T'?'Tutorial':'Lab'}</span>
+      ${cur?'<span style="font-size:11px;color:var(--accent);font-weight:700;margin-left:8px">●NOW</span>':''}
+    </div>`;
+  }).join('');
+}
+
+async function openSubjectHistory(rollNumber, subject){
+
+    console.log("HISTORY CLICKED", rollNumber, subject);
+
+  const modal = document.getElementById('modal-body');
+  modal.innerHTML = '<div class="spinner"></div>';
+
+  const snap = await getDocs(
+    query(collection(db,'attendance_sessions'),
+    where('rollNumber','==',rollNumber))
+  );
+
+  const rows = [];
+
+  snap.docs.forEach(d=>{
+    const data = d.data();
+
+    if(toCode(data.subject) !== toCode(subject)) return;
+
+    rows.push({
+      date: data.date,
+      period: data.periodId,
+      time: data.scanTime ? new Date(data.scanTime).toLocaleTimeString() : '--',
+      present: data.present
+    });
+  });
+
+  // sort latest first
+  rows.sort((a,b)=> b.date.localeCompare(a.date));
+
+  if(!rows.length){
+    modal.innerHTML = `<p style="color:var(--muted)">No records found</p>`;
+    return;
+  }
+
+  modal.innerHTML = `
+    <div class="section-title">📊 Attendance History (${subject})</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Period</th>
+          <th>Time</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r=>`
+          <tr>
+            <td>${r.date}</td>
+            <td>P${r.period}</td>
+            <td>${r.time}</td>
+            <td>
+              ${r.present
+                ? '<span class="badge good">Present</span>'
+                : '<span class="badge bad">Absent</span>'}
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+
+    <button class="btn-save-attendance" onclick="renderModal()">
+      ⬅ Back
+    </button>
+  `;
+}
+
+window.openSubjectHistory = openSubjectHistory; // ✅ ADD THIS
+
+/* ══════════════════════════════════════
+   MARK ABSENT — auto-called when a class
+   period's scan window closes without the
+   student tapping their card.
+   Increments totalClasses only (not attended).
+══════════════════════════════════════ */
+async function markAbsent(rollNumber, subject, date, periodId, department, section){
+
+  const attId  = `${rollNumber}_${subject}_${date}_P${periodId}`;
+  const sessRef = doc(db,'attendance_sessions',attId);
+
+  const existing = await getDoc(sessRef);
+
+  // ✅ If ANY record exists (present OR absent) → STOP
+  if(existing.exists()){
+    return;
+  }
+
+  // ✅ Create absent ONLY ONCE
+  await setDoc(sessRef,{
+    rollNumber, subject,
+    subjectName: SUBJECTS_DEF[subject]?.name || subject,
+    classType:'L',
+    date, periodId,
+    present:false,
+    markedAt:new Date(),
+    department, section,
+  });
+
+  const sumId = `${rollNumber}_${subject}`;
+  const sumRef = doc(db,'attendance',sumId);
+  const sumSnap = await getDoc(sumRef);
+
+  // ✅ CRITICAL: prevent double increment
+  if(!sumSnap.exists()){
+    await setDoc(sumRef,{
+      rollNumber, subject,
+      subjectName: SUBJECTS_DEF[subject]?.name || subject,
+      department, section,
+      attendedClasses:0,
+      totalClasses:1,
+      lastUpdated:new Date(),
+    });
+  } else {
+    // ⚠️ SAFETY CHECK (VERY IMPORTANT)
+    const current = sumSnap.data();
+
+    // Only increment if this session truly new
+    await updateDoc(sumRef,{
+      totalClasses: increment(1),
+      lastUpdated:new Date(),
+    });
+  }
+}
+
+/* ══════════════════════════════════════
+   SCAN WINDOW WATCHER
+   Runs every minute. When a period's
+   scan window closes, marks absent for
+   any student who didn't scan.
+   Only runs for the logged-in student.
+══════════════════════════════════════ */
+let absentWatcherTimer = null;
+let processedPeriods   = new Set(); // "DATE_PID" keys already handled today
+
+function startAbsentWatcher(studentData){
+  clearInterval(absentWatcherTimer);
+  absentWatcherTimer = setInterval(() => checkAndMarkAbsent(studentData), 60000);
+  checkAndMarkAbsent(studentData); // run immediately on login
+}
+
+function stopAbsentWatcher(){
+  clearInterval(absentWatcherTimer);
+  absentWatcherTimer = null;
+  processedPeriods.clear();
+}
+
+async function checkAndMarkAbsent(studentData){
+  const now  = new Date();
+  const nowM = toMin(now.getHours(), now.getMinutes());
+  const day  = DAYS[now.getDay()];
+  if(!day) return; // Sunday
+
+  for(const p of PD){
+    const closeM = toMin(...p.scanClose);
+    const endM   = toMin(...p.end);
+    const key    = `${dk(now)}_${p.id}`;
+
+    // Only process periods whose scan window has just closed and haven't been processed
+    if(nowM > closeM && nowM <= endM && !processedPeriods.has(key)){
+      processedPeriods.add(key);
+
+      // Find which class this period maps to for this student
+      const classes = getAllDayClasses(now, studentData.rollNumber).filter(c=>c.periodId===p.id);
+      for(const cls of classes){
+        await markAbsent(
+          studentData.rollNumber, cls.subject,
+          dk(now), p.id,
+          studentData.department, studentData.section
+        );
+      }
+    }
+  }
+}
+
+/* ══════════════════════════════════════
+   MARK ATTENDANCE (PRESENT via RFID)
+══════════════════════════════════════ */
+async function markAttendance(rfidUid, scanTime){
+  let snap = await getDocs(query(collection(db,'users'),where('rfidUid','==',rfidUid)));
+  if(snap.empty) snap = await getDocs(query(collection(db,'users'),where('rfidUid','==',rfidUid.toLowerCase())));
+  if(snap.empty) return [{ error:`No student for RFID: ${rfidUid}` }];
+
+  const student  = snap.docs[0].data();
+  const roll     = student.rollNumber;
+  const classes  = resolveClasses(scanTime, roll);
+
+  if(!classes.length) return [{
+    info:`No class for ${roll} (Group ${grpOf(roll)}) — ` +
+         `${DAYS[scanTime.getDay()]||'Sun'} ` +
+         `${scanTime.getHours()}:${String(scanTime.getMinutes()).padStart(2,'0')}`,
+    rollNumber:roll,
+  }];
+
+  const d = dk(scanTime);
+  const results = [];
+
+  for(const cls of classes){
+    const attId  = `${roll}_${cls.subject}_${d}_P${cls.periodId}`;
+    const sessRef = doc(db,'attendance_sessions',attId);
+    const existing = await getDoc(sessRef);
+
+    if(existing.exists()){
+      // If previously marked absent, upgrade to present
+      if(existing.data().present === false){
+        await updateDoc(sessRef,{ present:true, rfidUid, scanTime:scanTime.toISOString(), markedAt:new Date() });
+        // Also increment attendedClasses in summary
+        const sumRef = doc(db,'attendance',`${roll}_${cls.subject}`);
+        const sumSnap = await getDoc(sumRef);
+        if(sumSnap.exists()) await updateDoc(sumRef,{ attendedClasses:increment(1), lastUpdated:new Date() });
+        results.push({...cls,rollNumber:roll,date:d,status:'marked',attId});
+      } else {
+        results.push({...cls,rollNumber:roll,date:d,status:'already_marked',attId});
+      }
+      continue;
+    }
+
+    await setDoc(sessRef,{
+      rollNumber:roll, rfidUid, subject:cls.subject,
+      subjectName:SUBJECTS_DEF[cls.subject]?.name||cls.subject,
+      classType:cls.type, date:d, day:cls.day, periodId:cls.periodId,
+      scanTime:scanTime.toISOString(),
+      section:student.section, department:student.department,
+      present:true, markedAt:new Date(), note:cls.note||'',
+    });
+
+    // Update summary
+    const sumId  = `${roll}_${cls.subject}`;
+    const sumRef  = doc(db,'attendance',sumId);
+    const sumSnap = await getDoc(sumRef);
+    if(sumSnap.exists()){
+      await updateDoc(sumRef,{ attendedClasses:increment(1), totalClasses:increment(1), lastUpdated:new Date() });
+    } else {
+      await setDoc(sumRef,{
+        rollNumber:roll, subject:cls.subject,
+        subjectName:SUBJECTS_DEF[cls.subject]?.name||cls.subject,
+        department:student.department, section:student.section,
+        attendedClasses:1, totalClasses:1, lastUpdated:new Date(),
+      });
+    }
+    results.push({...cls,rollNumber:roll,date:d,status:'marked',attId});
+  }
+  return results;
+}
+
+/* ══════════════════════════════════════
+   REAL-TIME RFID LISTENER
+   ✅ Listens to DOC not collection
+══════════════════════════════════════ */
+let rfidUnsub = null;
+let seenKeys  = null;
+
+function startRfidListener(rfidUid){
+  seenKeys = null;
+  const docRef = doc(db,'rfid_scans', rfidUid); // ✅ DOC reference
+
+  rfidUnsub = onSnapshot(docRef, async (snap) => {
+    if(!snap.exists()) return;
+    const data = snap.data();
+    const keys = Object.keys(data);
+
+    if(seenKeys === null){
+      seenKeys = new Set(keys); // baseline — ignore old scans
+      console.log(`[RFID] Listening for ${rfidUid}. Baseline: ${keys.length} keys.`);
+      return;
+    }
+
+    const newKeys = keys.filter(k => !seenKeys.has(k));
+    newKeys.forEach(k => seenKeys.add(k));
+    if(!newKeys.length) return;
+
+    for(const key of newKeys){
+      const raw = data[key];
+      let scanTime;
+      if(raw && typeof raw.toDate === 'function') scanTime = raw.toDate();
+      else if(raw && raw.seconds)                 scanTime = new Date(raw.seconds*1000);
+      else                                         scanTime = new Date(raw);
+      if(isNaN(scanTime.getTime())) continue;
+
+      console.log(`[RFID] New scan: ${rfidUid} at ${scanTime.toLocaleString('en-IN')}`);
+      try {
+        const results = await markAttendance(rfidUid, scanTime);
+        results.forEach(r => {
+          if(r.status==='marked'){
+            showToast('ok','✅ Attendance Marked',
+              `${r.rollNumber} → ${r.subject} (${r.type||r.classType}) at ${scanTime.toLocaleTimeString('en-IN')}`);
+            if(currentStudentData?.rfidUid===rfidUid) loadStudentDash(currentStudentData);
+            // Also refresh faculty view if open
+            if(currentFacData && selBranch) loadStudents(selBranch, selSec);
+          } else if(r.status==='already_marked'){
+            showToast('info','ℹ️ Already Marked',`${r.rollNumber} → ${r.subject} on ${r.date}`);
+          } else if(r.info){
+            showToast('info','⏰ Outside Window', r.info);
+          } else if(r.error){
+            showToast('err','❌ Error', r.error);
+          }
+        });
+      } catch(e){ console.error('[RFID] error:', e); }
+    }
+  }, err => console.error('[RFID] snapshot error:', err));
+}
+
+function stopRfidListener(){ if(rfidUnsub){ rfidUnsub(); rfidUnsub=null; } seenKeys=null; }
+
+/* ─── Toast ─── */
+let toastT=null;
+function showToast(type,title,body){
+  const el=document.getElementById('toast');
+  document.getElementById('toast-icon').textContent  = type==='ok'?'✅':type==='err'?'❌':'ℹ️';
+  document.getElementById('toast-title').textContent = title;
+  document.getElementById('toast-body').textContent  = body;
+  el.className=`show ${type}`;
+  if(toastT) clearTimeout(toastT);
+  toastT=setTimeout(()=>{ el.className=''; },5000);
+}
+
+/* ─── Utilities ─── */
+function pct(a,t){ return !t?0:Math.round((a/t)*100); }
+function cc(p){ return p>=75?'good':p>=60?'warn':'bad'; }
+function initials(n){ return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+
+/* ─── Role ─── */
+let currentRole='student';
+window.setRole=function(r){
+  currentRole=r;
+  document.querySelectorAll('.role-tab').forEach((t,i)=>
+    t.classList.toggle('active',(i===0&&r==='student')||(i===1&&r==='faculty')));
+  document.getElementById('login-label').textContent=
+    r==='student'?'Roll Number / Email':'Faculty Email';
+};
+
+/* ══════════════════════════════════════
+   LOGIN
+══════════════════════════════════════ */
+let currentStudentData = null;
+let currentFacData     = null;
+
+window.doLogin=async function(){
+  const id=document.getElementById('login-id').value.trim();
+  const errEl=document.getElementById('login-error');
+  const btn=document.getElementById('btn-login');
+  errEl.classList.remove('show');
+  if(!id){ showErr('Please enter your ID'); return; }
+  btn.disabled=true; btn.textContent='Signing in…';
+  try{
+    if(currentRole==='student') await loginStudent(id);
+    else                         await loginFaculty(id);
+  }catch(e){ showErr(e.message||'Login failed.'); }
+  btn.disabled=false; btn.textContent='Sign In →';
+  function showErr(m){ errEl.textContent=m; errEl.classList.add('show'); }
+};
+
+async function loginStudent(id){
+  let snap=await getDocs(query(collection(db,'users'),where('rollNumber','==',id)));
+  if(snap.empty) snap=await getDocs(query(collection(db,'users'),where('email','==',id)));
+  if(snap.empty) throw new Error('Student not found.');
+  const data=snap.docs[0].data();
+  currentStudentData=data;
+  enterApp('student',data);
+  loadStudentDash(data);
+  if(data.rfidUid){
+    document.getElementById('live-indicator').style.display='block';
+    startRfidListener(data.rfidUid);
+    startAbsentWatcher(data); // ✅ Start absent auto-marking
+  }
+}
+
+async function loginFaculty(email){
+  const snap=await getDocs(query(collection(db,'teachers'),where('email','==',email)));
+  if(snap.empty) throw new Error('Faculty not found. Check your email.');
+  const data={...snap.docs[0].data(),teacherId:snap.docs[0].id};
+  currentFacData=data;
+  enterApp('faculty',data);
+  loadFacultyDash(data);
+}
+
+function enterApp(role,data){
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+  const name=data.name||'User';
+  document.getElementById('hdr-name').textContent=name;
+  document.getElementById('hdr-role').textContent=
+    role==='student'?`Roll: ${data.rollNumber||''}`:data.designation||'Faculty';
+  document.getElementById('hdr-avatar').textContent=initials(name);
+  document.getElementById('student-dashboard').style.display=role==='student'?'block':'none';
+  document.getElementById('faculty-dashboard').style.display=role==='faculty'?'block':'none';
+}
+
+window.doLogout=function(){
+  stopRfidListener(); stopAbsentWatcher();
+  currentStudentData=null; currentFacData=null;
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('student-dashboard').style.display='none';
+  document.getElementById('faculty-dashboard').style.display='none';
+  document.getElementById('live-indicator').style.display='none';
+  document.getElementById('login-id').value='';
+  document.getElementById('login-pass').value='';
+};
+
+function prefillTime(){
+  const el=document.getElementById('scan-datetime-input'); if(!el) return;
+  const now=new Date();
+  el.value=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+}
+
+/* ══════════════════════════════════════
+   STUDENT DASHBOARD
+══════════════════════════════════════ */
+async function loadStudentDash(userData){
+  const {rollNumber,name,department,section}=userData;
+  document.getElementById('std-title').textContent=`Hi, ${name.split(' ')[0]} 👋`;
+  document.getElementById('std-sub').textContent=`${department} · Section ${section} · Roll ${rollNumber}`;
+  renderSchedule(rollNumber);
+
+  const grp=grpOf(rollNumber);
+  const subjs=new Set();
+  for(const [,slot] of Object.entries(TT)){
+    if(slot.labCont) continue;
+    if(slot.g===ALL||slot.g===grp) subjs.add(slot.s);
+  }
+
+  const map={};
+  for(const s of subjs) map[s]={total:0,attended:0};
+
+  // Load attendance — deduplicate by taking max when same code appears twice
+  const sSnap = await getDocs(
+  query(collection(db,'attendance_sessions'), where('rollNumber','==',rollNumber))
+);
+
+const seen = new Set();
+
+sSnap.docs.forEach(d => {
+  const data = d.data();
+  const code = toCode(data.subject);
+
+  if(map[code] === undefined) return;
+
+  const key = `${code}_${data.date}_P${data.periodId}`;
+
+  // prevent duplicate counting
+  if(seen.has(key)) return;
+  seen.add(key);
+
+  map[code].total++;
+
+  if(data.present){
+    map[code].attended++;
+  }
+});
+
+  // Fallback: count from attendance_sessions
+  
+
+  let oT=0,oA=0;
+  Object.values(map).forEach(v=>{oT+=v.total;oA+=v.attended;});
+  const op=pct(oA,oT), oc=cc(op);
+
+  document.getElementById('std-stats').innerHTML=`
+    <div class="stat-card" style="animation-delay:0s">
+      <div class="stat-label">Overall Attendance</div>
+      <div class="stat-value ${oc}">${oT?op+'%':'N/A'}</div>
+      <div class="ring-track"><div class="ring-fill ${oc}" style="width:${op}%"></div></div>
+      <div class="stat-meta">${oA} of ${oT} classes attended</div>
+    </div>
+    <div class="stat-card" style="animation-delay:.1s">
+      <div class="stat-label">Classes Attended</div>
+      <div class="stat-value" style="color:var(--accent)">${oA}</div>
+      <div class="stat-meta">Total lectures present</div>
+    </div>
+    <div class="stat-card" style="animation-delay:.2s">
+      <div class="stat-label">Classes Missed</div>
+      <div class="stat-value" style="color:var(--muted)">${oT-oA}</div>
+      <div class="stat-meta">Total lectures absent</div>
+    </div>`;
+
+  const rows=Object.entries(map).map(([subj,v])=>{
+    const p2=pct(v.attended,v.total), c2=cc(p2);
+    return`<tr>
+      <td><strong>${subj}</strong><div style="font-size:12px;color:var(--muted);margin-top:2px">${SUBJECTS_DEF[subj]?.name||subj}</div></td>
+      <td>${v.total}</td><td>${v.attended}</td><td>${v.total-v.attended}</td>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="prog-bar"><div class="prog-fill ${c2}" style="width:${v.total?p2:0}%"></div></div>
+        <span class="badge ${c2}">${v.total?p2+'%':'N/A'}</span>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('std-table-wrap').innerHTML=`
+    <table>
+      <thead><tr><th>Subject</th><th>Total</th><th>Present</th><th>Absent</th><th>Percentage</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+/* ══════════════════════════════════════
+   FACULTY DASHBOARD
+   Shows ALL students in teacher's sections
+   with OVERALL attendance across ALL subjects
+   the teacher teaches them.
+══════════════════════════════════════ */
+let facData=null, selBranch=null, selSec=null, allStudents=[], currentSubjects=[];
+
+async function loadFacultyDash(fd){
+  facData=fd; prefillTime();
+  document.getElementById('fac-title').textContent=`Welcome, ${fd.name} 🎓`;
+
+  const taSnap=await getDocs(query(collection(db,'teaching_assignments'),where('teacherId','==',fd.teacherId)));
+  const asgn=taSnap.docs.map(d=>d.data());
+
+  const bmap={};
+  asgn.forEach(a=>{
+    if(!bmap[a.branch]) bmap[a.branch]=new Set();
+    bmap[a.branch].add(a.section);
+  });
+
+  const el=document.getElementById('fac-branches');
+  if(!Object.keys(bmap).length){
+    el.innerHTML='<p style="font-size:13px;color:var(--muted)">No assignments found.</p>'; return;
+  }
+  el.innerHTML='';
+  Object.keys(bmap).forEach(branch=>{
+    const item=document.createElement('div');
+    item.className='sidebar-item';
+    item.innerHTML=`<div class="sidebar-dot"></div>${branch}`;
+    item.onclick=()=>{
+      document.querySelectorAll('.sidebar-item').forEach(x=>x.classList.remove('active'));
+      item.classList.add('active');
+      selBranch=branch; selSec=[...bmap[branch]][0];
+      document.getElementById('fac-section-picker').style.display='block';
+      document.getElementById('fac-sections').innerHTML=[...bmap[branch]].map(s=>`
+        <div class="chip${s===selSec?' active':''}" data-sec="${s}"
+          onclick="pickSec('${s}','${branch}')">${s}</div>`).join('');
+      loadStudents(branch,selSec);
+    };
+    el.appendChild(item);
+  });
+}
+
+window.pickSec=function(sec,branch){
+  selSec=sec;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',c.dataset.sec===sec));
+  loadStudents(branch,sec);
+};
+
+async function loadStudents(branch, section){
+  const wrap = document.getElementById('fac-students-wrap');
+  wrap.innerHTML = '<div class="spinner"></div>';
+
+  // Get ALL students in section matching branch
+  const snap = await getDocs(
+    query(collection(db,'users'), where('section','==',section))
+  );
+
+  const all = snap.docs.map(d => ({ uid:d.id, ...d.data() }));
+
+  allStudents = all.filter(s => {
+    const dept = (s.department||'').toUpperCase();
+    const br   = branch.toUpperCase();
+    return dept===br || dept.includes(br) || br.includes(dept) || dept.replace(/[A-Z]$/,'')===br;
+  });
+
+  if(!allStudents.length && all.length) allStudents = all;
+
+  if(!allStudents.length){
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">👥</div>
+        <p>No students in ${branch}-${section}</p>
+      </div>`;
+    return;
+  }
+
+  // Get subjects teacher teaches
+  const taSnap = await getDocs(
+    query(collection(db,'teaching_assignments'),
+      where('teacherId','==',facData.teacherId),
+      where('branch','==',branch),
+      where('section','==',section))
+  );
+
+  currentSubjects = taSnap.docs.map(d => d.data().subject);
+  const subjectCodes = currentSubjects.map(toCode);
+
+  // UI header
+  wrap.innerHTML = `
+    <div style="margin-bottom:20px;">
+      <div class="section-title" style="margin-bottom:6px">
+        ${branch} · Section ${section} · ${allStudents.length} Students
+      </div>
+      <div style="font-size:12px;color:var(--muted)">
+        Subjects: ${subjectCodes.map(c=>SUBJECTS_DEF[c]?.short||c).join(', ')}
+      </div>
+    </div>
+    <div class="students-grid" id="students-grid"></div>
+  `;
+
+  const grid = document.getElementById('students-grid');
+
+  // 🔥 MAIN LOOP (FIXED LOGIC)
+  for(const [i, student] of allStudents.entries()){
+
+    let total = 0;
+    let attended = 0;
+
+    const sSnap = await getDocs(
+      query(collection(db,'attendance_sessions'),
+      where('rollNumber','==',student.rollNumber))
+    );
+
+    const seen = new Set();
+
+    sSnap.docs.forEach(d => {
+      const data = d.data();
+      const code = toCode(data.subject);
+
+      // Only teacher's subjects
+      if(!subjectCodes.includes(code)) return;
+
+      const key = `${code}_${data.date}_P${data.periodId}`;
+
+      // Prevent duplicate counting
+      if(seen.has(key)) return;
+      seen.add(key);
+
+      total++;
+
+      if(data.present){
+        attended++;
+      }
+    });
+
+    const p2 = pct(attended,total);
+    const c2 = cc(p2);
+
+    const card = document.createElement('div');
+    card.className = 'student-card';
+    card.style.animationDelay = `${i*0.05}s`;
+
+    card.innerHTML = `
+      <div class="student-card-name">${student.name}</div>
+      <div class="student-card-roll">${student.rollNumber}</div>
+      <div class="student-card-pct ${c2}">
+        ${total ? p2+'%' : '—'}
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">
+        ${attended}/${total} classes
+      </div>
+      <div class="ring-track">
+        <div class="ring-fill ${c2}" style="width:${p2}%"></div>
+      </div>
+    `;
+
+    card.onclick = () => openModal(student, currentSubjects);
+
+    grid.appendChild(card);
+  }
+};
+
+/* ─── Manual RFID scan ─── */
+window.triggerScan=async function(){
+  const uid=document.getElementById('scan-rfid-input').value.trim();
+  const dt=document.getElementById('scan-datetime-input').value;
+  if(!uid){ showScan('err','Please enter RFID UID.'); return; }
+  const scanTime=dt?new Date(dt):new Date();
+  showScan('info',`⏳ Processing RFID: ${uid} at ${scanTime.toLocaleString('en-IN')}`);
+  try{
+    const res=await markAttendance(uid,scanTime);
+    const msgs=res.map(r=>{
+      if(r.error)                     return '❌ '+r.error;
+      if(r.info)                      return 'ℹ️ '+r.info;
+      if(r.status==='already_marked') return `⚠️ Already marked: ${r.rollNumber} → ${r.subject} on ${r.date}`;
+      if(r.status==='marked')         return `✅ Marked: ${r.rollNumber} → ${r.subject} (${r.type||r.classType}) P${r.periodId}`;
+      return JSON.stringify(r);
+    });
+    const ok=res.some(r=>r.status==='marked'), warn=res.some(r=>r.status==='already_marked');
+    showScan(ok?'ok':warn?'info':'err',msgs.join('<br>'));
+    if(ok&&selBranch) await loadStudents(selBranch,selSec);
+  }catch(e){ showScan('err','Error: '+e.message); }
+};
+function showScan(type,msg){
+  const b=document.getElementById('scan-result-box');
+  b.className=`scan-result show ${type}`;
+  b.innerHTML=msg;
+}
+
+/* ══════════════════════════════════════
+   ATTENDANCE MODAL
+   Shows ALL subjects for this student
+   (not just teacher's subjects) for full
+   transparency, but only saves teacher's.
+══════════════════════════════════════ */
+let modalStudent=null, modalSubjs=[], modalStats={};
+
+async function openModal(student, subjects){
+  modalStudent = student;
+  modalSubjs = subjects;
+
+  document.getElementById('modal-name').textContent = student.name;
+  document.getElementById('modal-roll').textContent =
+    `Roll: ${student.rollNumber} · ${student.department}-${student.section}`;
+
+  document.getElementById('modal-body').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('modal').classList.add('open');
+
+  modalStats = {};
+
+  const sSnap = await getDocs(
+    query(collection(db,'attendance_sessions'),
+    where('rollNumber','==',student.rollNumber))
+  );
+
+  const seen = new Set();
+
+  for(const subj of subjects){
+    const code = toCode(subj);
+    let total = 0, attended = 0;
+
+    sSnap.docs.forEach(d => {
+      const data = d.data();
+      const code2 = toCode(data.subject);
+
+      if(code2 !== code) return;
+
+      const key = `${code2}_${data.date}_P${data.periodId}`;
+      if(seen.has(key)) return;
+
+      seen.add(key);
+
+      total++;
+      if(data.present) attended++;
+    });
+
+    modalStats[subj] = { total, attended, code };
+  }
+
+  renderModal();
+}
+
+function renderModal(){
+  const body=document.getElementById('modal-body');
+  if(!modalSubjs.length){ body.innerHTML='<p style="color:var(--muted);text-align:center">No subjects.</p>'; return; }
+
+  // Summary bar at top of modal
+  let mTotal=0, mAtt=0;
+  modalSubjs.forEach(s=>{ mTotal+=modalStats[s].total; mAtt+=modalStats[s].attended; });
+  const mp=pct(mAtt,mTotal), mc=cc(mp);
+
+  body.innerHTML=`
+    <div style="background:var(--subtle);border-radius:12px;padding:16px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Overall (My Subjects)</div>
+        <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;" class="${mc}">${mTotal?mp+'%':'N/A'}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${mAtt}/${mTotal} classes</div>
+      </div>
+      <div class="ring-track" style="width:140px;margin:0"><div class="ring-fill ${mc}" style="width:${mp}%"></div></div>
+    </div>` +
+
+  modalSubjs.map(subj=>{
+    const{total,attended,code}=modalStats[subj];
+    const p2=pct(attended,total), c2=cc(p2);
+    const sn=SUBJECTS_DEF[code]?.name||SUBJECTS_DEF[subj]?.name||subj;
+    const sid=subj.replace(/[^a-zA-Z0-9]/g,'_');
+    return`<div class="subject-edit-row">
+      <div class="ser-top">
+        <div><div class="ser-subject subject-click"
+     data-roll="${modalStudent.rollNumber}"
+     data-subject="${code}"
+     style="cursor:pointer;color:var(--accent)">
+  ${subj}
+</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${sn}</div></div>
+        <div class="ser-pct ${c2}" id="lp-${sid}">${total?p2+'%':'N/A'}</div>
+      </div>
+      <div class="ser-inputs">
+        <div class="ser-input-wrap">
+          <label>Total Classes</label>
+          <input class="ser-input" type="number" min="0" id="it-${sid}" value="${total}" oninput="updPct('${subj}')"/>
+        </div>
+        <div class="ser-input-wrap">
+          <label>Attended</label>
+          <input class="ser-input" type="number" min="0" id="ia-${sid}" value="${attended}" oninput="updPct('${subj}')"/>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  body.innerHTML+=`<button class="btn-save-attendance" id="btn-save" onclick="saveAtt()">Save Attendance</button>`;
+}
+
+window.updPct=function(subj){
+  const sid=subj.replace(/[^a-zA-Z0-9]/g,'_');
+  const t=parseInt(document.getElementById(`it-${sid}`).value)||0;
+  const a=parseInt(document.getElementById(`ia-${sid}`).value)||0;
+  const el=document.getElementById(`lp-${sid}`);
+  const p2=pct(a,t); el.textContent=t?p2+'%':'N/A'; el.className=`ser-pct ${cc(p2)}`;
+};
+
+window.saveAtt=async function(){
+  const btn=document.getElementById('btn-save'), st=document.getElementById('save-status');
+  btn.disabled=true; btn.textContent='Saving…'; st.textContent=''; st.style.color='var(--success)';
+  try{
+    for(const subj of modalSubjs){
+      const sid=subj.replace(/[^a-zA-Z0-9]/g,'_');
+      const total=parseInt(document.getElementById(`it-${sid}`).value)||0;
+      const attended=parseInt(document.getElementById(`ia-${sid}`).value)||0;
+      const{attDocId,code}=modalStats[subj];
+      const d={rollNumber:modalStudent.rollNumber,subject:subj,
+        subjectName:SUBJECTS_DEF[code]?.name||subj,
+        department:modalStudent.department,section:modalStudent.section,
+        totalClasses:total,attendedClasses:attended,updatedAt:new Date()};
+      if(attDocId){
+        await updateDoc(doc(db,'attendance',attDocId),{totalClasses:total,attendedClasses:attended,updatedAt:new Date()});
+      } else {
+        const nid=`${modalStudent.rollNumber}_${subj}`;
+        await setDoc(doc(db,'attendance',nid),d);
+        modalStats[subj].attDocId=nid;
+      }
+      modalStats[subj].total=total; modalStats[subj].attended=attended;
+    }
+    st.textContent='✓ Saved successfully!';
+    await loadStudents(selBranch,selSec);
+  }catch(e){ st.style.color='var(--danger)'; st.textContent='✗ '+e.message; }
+  btn.disabled=false; btn.textContent='Save Attendance';
+};
+
+window.closeModal=function(){ document.getElementById('modal').classList.remove('open'); };
+document.getElementById('modal').addEventListener('click',function(e){ if(e.target===this) closeModal(); });
+document.getElementById('login-pass').addEventListener('keydown',e=>{ if(e.key==='Enter') window.doLogin(); });
+document.getElementById('login-id').addEventListener('keydown', e=>{ if(e.key==='Enter') window.doLogin(); });
+</script>
+</body>
+</html>
